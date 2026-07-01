@@ -1,0 +1,220 @@
+# Oikos · 物体类型目录(编号模板) —— 加新物体只往这里追加, 内核零改动
+# 配套文档: ../world.md Part IV(类型/实例两层) / Part VII(Affordance) / W11
+#
+# 铁律:
+#   - type_id 全局唯一、只增不复用; 退役标 deprecated=true 保号位, 不删不改。
+#   - 号段: 1000家具 2000家电 3000固定设施 4000设备 5000可携带物 6000生物 9000+扩展。
+#   - 能力(affordance)挂在类型上 —— 加物体顺带带来的交互在此一并声明。
+#   - reach 是交互半径(米): 身体中心走进此半径即可交互(连续判定);
+#     footprint 是连续占地半径; blocks_walk 决定是否为碰撞障碍。
+
+# ───────────────────────── 1000 · 家具 furniture ─────────────────────────
+[[type]]
+type_id = 1001
+name = "bed"
+kind = "furniture"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+interact_posture = ["standing"]
+state_schema = { occupied = false }
+affordances = [
+  { capability = "lie_down", when = {} },
+  { capability = "sleep",    when = { posture = ["lying"] } },
+]
+tags = ["bedroom", "rest"]
+
+[[type]]
+type_id = 1002
+name = "sofa"
+kind = "furniture"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = {}
+affordances = [
+  { capability = "sit_down", when = {} },
+  { capability = "nap",      when = { posture = ["seated"] } },
+]
+tags = ["living", "seating", "rest"]
+
+[[type]]
+type_id = 1003
+name = "bookshelf"
+kind = "furniture"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = {}
+affordances = [ { capability = "read", when = {} } ]
+tags = ["bedroom", "leisure"]
+
+[[type]]
+type_id = 1004
+name = "dining_table"
+kind = "furniture"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = {}
+affordances = [ { capability = "eat", when = { held = ["food_item"] } } ]
+tags = ["living", "dining"]
+
+[[type]]
+type_id = 1005
+name = "chair"
+kind = "furniture"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = {}
+affordances = [ { capability = "sit_down", when = {} } ]
+tags = ["seating"]
+
+
+# ───────────────────────── 2000 · 家电 appliance ─────────────────────────
+[[type]]
+type_id = 2001
+name = "fridge"
+kind = "appliance"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = { food = 0, drink = 0 }
+affordances = [
+  { capability = "open_fridge", when = {} },
+  { capability = "take_food",   when = { object_state = { food_gt = 0 } } },
+  { capability = "take_drink",  when = { object_state = { drink_gt = 0 } } },
+]
+tags = ["kitchen", "storage"]
+
+[[type]]
+type_id = 2002
+name = "stove"
+kind = "appliance"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = { on = false }
+affordances = [ { capability = "cook", when = { held = ["food_item"] } } ]
+tags = ["kitchen"]
+
+[[type]]
+type_id = 2003
+name = "tv"
+kind = "appliance"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = { power = "off" }
+affordances = [
+  { capability = "toggle_tv",  when = {} },
+  { capability = "watch_tv",   when = { object_state = { power = "on" } } },
+]
+tags = ["living", "leisure"]
+
+# 新增示例: 微波炉。加它只动了这一段 + (若 heat_food 是新能力)skills/, 不碰内核。
+[[type]]
+type_id = 2004
+name = "microwave"
+kind = "appliance"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = { contents = "", running = false }
+affordances = [ { capability = "heat_food", when = { held = ["food_item"] } } ]
+tags = ["kitchen"]
+
+# ───────────────────────── 3000 · 固定设施 fixture ─────────────────────────
+[[type]]
+type_id = 3001
+name = "toilet"
+kind = "fixture"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+interact_posture = ["seated"]
+state_schema = {}
+affordances = [ { capability = "use_toilet", when = {} } ]
+tags = ["bathroom"]
+
+[[type]]
+type_id = 3002
+name = "shower"
+kind = "fixture"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = {}
+affordances = [ { capability = "shower", when = {} } ]
+tags = ["bathroom"]
+
+[[type]]
+type_id = 3003
+name = "sink"
+kind = "fixture"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = {}
+affordances = [
+  { capability = "drink",      when = {} },
+  { capability = "wash_hands", when = {} },
+]
+tags = ["bathroom"]
+
+[[type]]
+type_id = 3004
+name = "counter"
+kind = "fixture"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = {}
+affordances = [ { capability = "prep_food", when = {} } ]
+tags = ["kitchen"]
+
+
+# ───────────────────────── 4000 · 设备 device(接外部桥) ─────────────────────────
+# 设备背后是真实外部世界(MC/Telegram), 仅在具身门控满足时活跃(world.md W5)。
+[[type]]
+type_id = 4001
+name = "computer"
+kind = "device"
+blocks_walk = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+interact_posture = ["seated"]
+state_schema = { power = "off" }
+affordances = [
+  { capability = "power_on_computer",  when = { posture = ["seated"] } },
+  { capability = "login_minecraft",    when = { posture = ["seated"], object_state = { power = "on" } } },
+  { capability = "play_minecraft",      when = { posture = ["seated"], object_state = { mc_session = "active" } } },
+]
+tags = ["desk", "device", "leisure"]
+
+[[type]]
+type_id = 4002
+name = "phone"
+kind = "device"
+blocks_walk = false           # 便携小物, 不挡路
+portable = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = { power = "on", battery = 1.0, unread = 0 }
+affordances = [
+  # 在充电处(脚下/相邻)可拿起
+  { capability = "pick_up_phone", when = {} },
+  # 下面的都要求"手里拿着本机"(具身认知: 我在用一部手机)
+  { capability = "open_app",      when = { held = ["self"] } },
+  { capability = "type_message",  when = { held = ["self"] } },
+  { capability = "send_message",  when = { held = ["self"] } },
+  { capability = "put_phone_on_charger", when = { held = ["self"] } },
+]
+tags = ["device", "social", "portable"]
+
+# ───────────────────────── 5000 · 可携带物 item ─────────────────────────
+[[type]]
+type_id = 5003
+name = "food_item"
+kind = "item"
+blocks_walk = false
+portable = true
+reach = 0.9                          # 交互半径(米): 身体走进此半径即可交互
+state_schema = { fresh = true }
+affordances = [
+  { capability = "pick_up",  when = {} },
+  { capability = "eat",      when = { held = ["self"] } },
+]
+tags = ["item", "food"]
+
+# 想继续扩展? 往对应号段追加 [[type]] 即可:
+#   1006 chair_office / 2005 dishwasher / 5001 cup / 6001 cat(宠物) / 9001 printer ...
+# 每加一种, 内核、协议、已有物体都不用动 —— 这就是编号目录的意义。
+
+

@@ -1,0 +1,120 @@
+# Oikos · 示例地图 —— 12×9 单层小公寓
+# 配套文档: ../world.md Part IV(连续空间/类型实例两层) / Part X(格式)
+#
+# 坐标体系: 网格是"地形层"(墙/房间/光照/物体锚点), 身体在连续平面移动(浮点坐标)。
+# 物体分两层(见 object_types.toml): layout+legend 自动实例化挡路物; 便携物与
+# 需覆写 state 的实例在 [[instance]] 里声明。加物体从不改 layout 结构。
+# 本布局已校验: 每件挡路物 reach 半径内有空地; 全部可走空间连续连通(寻路必有解)。
+
+[grid]
+w = 12
+h = 9
+
+# layout: 每行一个字符串, 一字符 = 一格地形(网格作静态地形层, 非身体运动单位)。
+# 加载器据此生成 cells, 把 solid 格边界抽成墙线段供连续碰撞/视线射线用, 并把字母格
+# 按 legend 实例化为挡路物(blocks_walk=true)。便携物(手机/食物)不进 layout —
+# 它们落在地面格、blocks_walk=false, 由下方 [[instance]] 声明(不挡路)。
+#   #=墙(实心)  .=地面(可走)  +=门(可通行)  字母=挡路型可交互物(锚点格, 实心)
+layout = [
+  "############",
+  "#B.K#...#HT#",
+  "#...+...+..#",
+  "#D..#...#.W#",
+  "#...#..#####",
+  "#.......#F.#",
+  "#S...N..+..#",
+  "#V......#CO#",
+  "#####+######",
+]
+
+# legend: layout 里每个字母 → (object 实例 id, 引用的 type_id)。
+# 加载器据此自动生成挡路物实例, 锚点=该字母的格; 交互半径由 type.reach 决定。
+[legend]
+B = { id = "bed_main",        type_id = 1001 }
+K = { id = "bookshelf_bed",   type_id = 1003 }
+D = { id = "computer_desk",   type_id = 4001 }
+H = { id = "shower_bath",     type_id = 3002 }
+T = { id = "toilet_bath",     type_id = 3001 }
+W = { id = "sink_bath",       type_id = 3003 }
+F = { id = "fridge_kitchen",  type_id = 2001 }
+C = { id = "counter_kitchen", type_id = 3004 }
+O = { id = "stove_kitchen",   type_id = 2002 }
+S = { id = "sofa_living",     type_id = 1002 }
+V = { id = "tv_living",       type_id = 2003 }
+N = { id = "table_living",    type_id = 1004 }
+
+# ── 区域 = 多格集合(房间/功能区) ── [x0,y0,x1,y1] 闭区间矩形
+[rooms]
+bedroom  = { rects = [[1, 1, 3, 4]] }
+hall     = { rects = [[5, 1, 7, 3]] }
+bathroom = { rects = [[9, 1, 10, 3]] }
+living   = { rects = [[1, 5, 7, 7]] }
+kitchen  = { rects = [[9, 5, 10, 7]] }
+
+# ── 门: 连接两个区域的可通行格(layout 里的 +) ──
+[[doors]]
+cell = [4, 2]
+connects = ["bedroom", "hall"]
+start_open = true
+[[doors]]
+cell = [8, 2]
+connects = ["hall", "bathroom"]
+start_open = false                  # 卫生间门默认关
+[[doors]]
+cell = [8, 6]
+connects = ["living", "kitchen"]
+start_open = true
+[[doors]]
+cell = [5, 8]
+connects = ["living", "outside"]
+start_open = false                  # 入户门
+
+# ── 物体实例 ──
+# 大多数挡路物已由 layout+legend 自动实例化(锚点=字母格, 用 type 默认 state)。
+# 这里只补充:
+#   (a) 需要覆写初始 state 的实例;
+#   (b) 便携物(不在 layout 里, blocks_walk=false, 落在地面格, 不挡路)。
+# 每条实例只引用 type_id + anchor_cell(+可选 state 覆写), 极轻量。
+# 注: 便携物的 anchor_cell 是它静置(充电/摆放)处; 被拿起后位置跟随持有者身体。
+
+# (a) 状态覆写: 冰箱里有存货
+[[instance]]
+id = "fridge_kitchen"
+type_id = 2001
+anchor_cell = [9, 5]
+state = { food = 3, drink = 2 }
+
+# (b) 便携物: Alice 的手机, 充电处在厨房角落(地面格 10,5, 不挡路)
+[[instance]]
+id = "phone_alice"
+type_id = 4002
+anchor_cell = [10, 5]
+state = { power = "on", battery = 0.9, unread = 0 }
+owner = "alice"
+
+# (b) 便携物: 客人 Hermes 的手机, 充电处在客厅(地面格 2,5)
+[[instance]]
+id = "phone_guest"
+type_id = 4002
+anchor_cell = [2, 5]
+state = { power = "on", battery = 0.75, unread = 0 }
+owner = "guest"
+
+# 想加一台微波炉? 在 object_types.toml 里它已是 2004; 这里摆一台即可(厨房地面有限,
+# 示例略)。想加椅子(1005)、食物(5003)同理 —— 加实例从不需要改 layout 的结构。
+
+# ── 声学参数(Part VI 声音传播) ── 可调可单测
+# 可闻度 audible = loudness − dist_atten_per_cell*欧氏距离 − wall_occlusion*穿过的墙数
+#                            − door_occlusion(开/关)*穿过的门数
+[acoustics]
+dist_atten_per_cell   = 0.06
+wall_occlusion        = 0.50    # 声波每穿一道实墙扣这么多(隔墙变闷)
+door_open_occlusion   = 0.10    # 开着的门几乎不挡
+door_closed_occlusion = 0.35    # 关着的门挡得多
+audible_threshold     = 0.15    # 低于此 → 完全听不到(不并入观察)
+clear_threshold       = 0.55    # 高于此 → 听清内容; 介于二者 → "听见有人说话但听不清"
+
+[acoustics.loudness]            # 各音量档的源头响度
+whisper = 0.45
+normal  = 0.80
+shout   = 1.00

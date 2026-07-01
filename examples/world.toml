@@ -1,0 +1,94 @@
+# Oikos · 示例世界配置
+# 配套文档: ../world.md Part III(时钟) / Part V(生理) / Part VII(设备) / Part X(格式)
+# 一个世界一个目录; 世界里可住多具身体(见 bodies.toml)。
+
+[world]
+id = "apartment_01"
+map = "./map.toml"
+bodies = "./bodies.toml"
+
+# ── 世界时钟(Part III) ── 默认与现实同步, 只能向前
+[clock]
+scale = 1.0                 # 1.0=与现实同步; 60=1现实秒过1世界分钟; 0=暂停
+timezone = "Asia/Shanghai"
+start_paused = false
+
+# ── 生理代谢系数(Part V) ── 每世界秒的变化率, 可调可单测
+# 默认值按"约16h清醒后明显困、约5h后明显饿"的人体节律粗调。
+[metabolism]
+hunger_rate          = 0.000020   # 饥饿累积
+thirst_rate          = 0.000035   # 口渴累积(比饿快)
+bladder_rate         = 0.000045   # 尿意(与近期饮水耦合, 这是基础项)
+bowel_rate           = 0.000008
+hygiene_soil_rate    = 0.000012   # 变脏
+fatigue_wake_rate    = 0.000017   # 清醒时困意累积
+energy_drain_idle    = 0.000005   # 静息耗能
+circadian_amp        = 0.30       # 昼夜对困意的调制幅度
+circadian_peak_hour  = 3          # 困意昼夜项在凌晨3点最高
+
+# 活动额外代谢(叠加在基础项上): 走路/做饭更耗能、更出汗
+[metabolism.activity]
+walk_energy_cost   = 0.0008       # 每格
+walk_hygiene_cost  = 0.0003
+cook_energy_cost   = 0.002
+
+# 缓解动作的恢复量(Part V 缓解事件 → capability effects)
+[metabolism.relief]
+eat_hunger      = 0.6
+drink_thirst    = 0.7
+toilet_bladder  = 0.95
+shower_hygiene  = 0.95
+sleep_fatigue_per_hour = 0.14     # 睡满约7世界小时回满
+
+# ── 行为稳定性钩子(world.md Part VII) ── 过程式满足的时间常数
+# 持续性活动逐 tick 满足其 engages 的需求, stimulation 随时长边际递减。
+[engagement]
+boredom_idle_rate    = 0.000015   # 闲着时无聊累积
+[engagement.activities.play_minecraft]
+engages = ["boredom", "achievement"]
+relief_rate = 0.00040             # 每世界秒降无聊(乘 stimulation)
+stimulation_halflife_s = 2400     # 新鲜感半衰期~40世界分钟(防上瘾旋钮)
+[engagement.activities.watch_tv]
+engages = ["boredom"]
+relief_rate = 0.00030
+stimulation_halflife_s = 1800
+
+# ── 设备(Part VII) ──
+# 电脑是共享物: 谁坐到 desk 工位谁用。
+[devices.computer]
+object = "computer"
+station = "desk"
+require_posture = "seated"
+[devices.computer.minecraft]
+bridge = "mineflayer"             # 见 world.md Part XII
+host = "localhost"
+port = 25565
+disconnect_on_leave = true        # ★离开 desk 立即断开 MC
+
+# 手机是可携带专属物: 每具身体一台(归属在 bodies.toml)。
+[devices.phone]
+portable = true
+require_held = true               # 必须握在手里才能收发(具身认知)
+[devices.phone.telegram]
+bridge = "telegram_bot"
+bot_token = "ENV:TELEGRAM_BOT_TOKEN"   # ENV: 前缀=从环境变量读, 不写明文
+allowed_user_ids = [123456789]
+
+# ── 协议服务(world.md Part VIII) ──
+[server]
+bind = "127.0.0.1"
+port = 7000
+transport = "http"                # 起步用 http+json; 可换 msgpack/ws
+event_stream = "sse"              # 事件推送通道
+
+# ── 存储与可观测(Part X) ──
+[storage]
+dir = "./state"
+state_db = "./state/state.db"     # SQLite: 各身体/物/计时器/声音真值
+world_log = "./state/world.log"   # append-only, 可回放重建
+snapshot_every_s = 300
+
+# 认领策略(W9)
+[claiming]
+detach_idle_timeout_s = 120       # 心智超时无活动 → 世界回收认领, 身体转空置
+reject_double_claim = true        # 一具身体至多一个心智; 冲突 fail-loud

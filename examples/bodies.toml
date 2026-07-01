@@ -1,0 +1,36 @@
+# Oikos · 示例身体清单 —— 世界里住着哪些身体
+# 配套文档: ../world.md Part IV(Body 模型) / Part VIII(认领) / Part IX(多智能体)
+# 身体是世界里的实体, 与"谁来认领驱动它"解耦。
+# 任意能读 ../embody.md 的智能体都可 attach 其中一具空置身体。
+
+# ── Alice: 通常由持续自主体 ADOS(../soul.md) 认领 ──
+[[body]]
+id = "alice"
+display_name = "Alice"
+start_pos = [2.5, 2.5]            # 连续世界坐标(米); 卧室内一处空地(格中心)
+start_heading = 90                # 朝向(度, 0=+x 逆时针); 90=面朝北
+start_posture = "standing"
+phone = "phone_alice"             # 专属手机(见 map.toml 实例)
+# 初始生理(留空则全 0 = 刚睡饱的状态)
+[body.physiology]
+hunger = 0.2
+thirst = 0.3
+fatigue = 0.15
+
+# ── Hermes: 留给任意客户端认领的客人身体(可以是一次性 agent) ──
+[[body]]
+id = "guest"
+display_name = "Hermes"
+start_pos = [3.5, 6.5]            # 连续世界坐标(米); 客厅内一处空地
+start_heading = 0                 # 面朝东
+start_posture = "standing"
+phone = "phone_guest"
+[body.physiology]
+hunger = 0.3
+thirst = 0.4
+
+# 说明:
+# - claimed_by 不在此声明 —— 它是运行期状态(谁 attach 了就归谁), 不是静态配置。
+# - 空置身体仍是世界实体: 照样占格、照样代谢、照样能被别人看到/听到。
+# - 想给世界加人, 在这里多写一个 [[body]] 即可; 想让某身体专机, 在 map.toml
+#   里加一台 portable=true 的 phone 并在此用 phone=... 指过去。
